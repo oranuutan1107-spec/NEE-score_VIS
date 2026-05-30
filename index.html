@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEE / MAP-NEE 計算ツール</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0e2a2c;
+    --teal:#0f6b6e;
+    --teal-soft:#147c80;
+    --bg:#f4f1ea;
+    --panel:#fbfaf6;
+    --line:#d9d2c4;
+    --amber:#c2772b;
+    --muted:#6d6a60;
+    --result-bg:#0e2a2c;
+    --good:#2f8f5b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:'IBM Plex Sans JP',sans-serif;
+    background:var(--bg);
+    background-image:radial-gradient(circle at 12% 0%, #ffffff 0%, transparent 45%),
+                     radial-gradient(circle at 100% 100%, #eae5d8 0%, transparent 50%);
+    color:var(--ink);
+    line-height:1.55;
+    padding:28px 18px 60px;
+    min-height:100vh;
+  }
+  .wrap{max-width:880px;margin:0 auto}
+
+  /* Header */
+  header{
+    border-bottom:2px solid var(--ink);
+    padding-bottom:18px;margin-bottom:26px;
+  }
+  .kicker{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--teal);font-weight:600;
+  }
+  h1{
+    font-family:'IBM Plex Serif',serif;
+    font-size:clamp(26px,5vw,38px);
+    font-weight:600;line-height:1.1;margin:6px 0 8px;
+    letter-spacing:-.01em;
+  }
+  .sub{font-size:13.5px;color:var(--muted);max-width:60ch}
+  .sub b{color:var(--ink);font-weight:500}
+
+  /* Layout */
+  .grid{display:grid;grid-template-columns:1fr;gap:22px}
+  @media(min-width:780px){.grid{grid-template-columns:1.3fr .85fr;align-items:start}}
+
+  /* Panels */
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 20px 8px;
+    box-shadow:0 1px 0 #fff inset, 0 10px 30px -22px rgba(14,42,44,.4);
+  }
+  .panel h2{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .panel h2::before{content:"";width:18px;height:2px;background:var(--teal);display:inline-block}
+
+  /* MAP block */
+  .map-row{
+    display:flex;align-items:center;gap:14px;
+    background:#fff;border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;margin-bottom:6px;
+  }
+  .map-row label{flex:1;font-weight:500;font-size:15px}
+  .map-row .unit{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+
+  /* Drug rows */
+  .drug{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:4px 12px;
+    align-items:center;
+    padding:11px 2px;
+    border-bottom:1px solid var(--line);
+  }
+  .drug:last-of-type{border-bottom:none}
+  .drug .name{font-weight:500;font-size:14.5px}
+  .drug .meta{
+    grid-column:1/2;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;color:var(--muted);
+  }
+  .drug .meta .factor{color:var(--amber);font-weight:600}
+  .drug .field{
+    grid-row:1/3;grid-column:2/3;
+    display:flex;align-items:center;gap:8px;justify-content:flex-end;
+  }
+  .drug .contrib{
+    grid-column:2/3;grid-row:2/3;
+    text-align:right;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;color:var(--teal-soft);
+    min-height:14px;
+  }
+
+  input[type="number"]{
+    width:96px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px;font-weight:500;
+    text-align:right;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:8px;background:#fff;color:var(--ink);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  input[type="number"]:focus{
+    outline:none;border-color:var(--teal);
+    box-shadow:0 0 0 3px rgba(15,107,110,.14);
+  }
+  input.filled{border-color:var(--teal);background:#f3faf9}
+  .drug .ulabel{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;color:var(--muted);
+    width:62px;text-align:left;line-height:1.2;
+  }
+  /* hide number spinners */
+  input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield}
+
+  /* Results */
+  .result{
+    position:sticky;top:18px;
+    background:var(--result-bg);
+    color:#f4f1ea;border-radius:14px;padding:22px 22px 18px;
+    box-shadow:0 18px 40px -24px rgba(14,42,44,.8);
+  }
+  .result h2{color:#8fd3d2}
+  .result h2::before{background:#8fd3d2}
+  .metric{padding:14px 0;border-bottom:1px solid rgba(255,255,255,.12)}
+  .metric:last-child{border-bottom:none}
+  .metric .label{font-size:12px;color:#a9c4c4;letter-spacing:.04em}
+  .metric .val{
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:600;line-height:1;margin-top:6px;
+    display:flex;align-items:baseline;gap:8px;
+  }
+  .metric .num{font-size:38px}
+  .metric .u{font-size:12px;color:#8fb6b6;font-weight:400}
+  #nee .num{color:#fff}
+  #ratio .num{color:#ffd9a8}
+  .hint{font-size:11px;color:#8aa6a6;margin-top:4px}
+  .reset{
+    margin-top:16px;width:100%;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;
+    text-transform:uppercase;cursor:pointer;
+    background:transparent;color:#8fd3d2;
+    border:1px solid rgba(143,211,210,.4);border-radius:8px;
+    padding:10px;transition:background .15s,color .15s;
+  }
+  .reset:hover{background:rgba(143,211,210,.12);color:#fff}
+
+  /* Formula / footnote */
+  details{
+    margin-top:22px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:4px 18px;
+  }
+  summary{
+    cursor:pointer;padding:12px 0;font-weight:500;font-size:13.5px;
+    list-style:none;display:flex;align-items:center;gap:8px;
+  }
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"＋";color:var(--teal);font-weight:700}
+  details[open] summary::before{content:"−"}
+  .formula{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;
+    line-height:1.9;color:var(--ink);
+    background:#fff;border:1px solid var(--line);border-radius:8px;
+    padding:14px;margin:4px 0 16px;overflow-x:auto;white-space:nowrap;
+  }
+  footer{
+    margin-top:24px;font-size:11.5px;color:var(--muted);line-height:1.7;
+  }
+  footer a{color:var(--teal);text-decoration:none;border-bottom:1px dotted var(--teal)}
+  .disclaimer{
+    margin-top:14px;font-size:11px;color:var(--muted);
+    border-left:3px solid var(--amber);padding:4px 0 4px 12px;background:rgba(194,119,43,.05);
+    border-radius:0 6px 6px 0;padding:8px 12px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Norepinephrine Equivalent Score</div>
+    <h1>NEE / MAP-NEE 計算ツール</h1>
+    <p class="sub">Kotani et al. の<b>更新版 norepinephrine equivalent（NEE）式</b>に基づき、複数の昇圧薬・補助薬を NEE（µg/kg/min 相当）に換算します。MAP を入力すると、ショック重症度の指標である <b>MAP/NEE 比</b>も同時に算出します。</p>
+  </header>
+
+  <div class="grid">
+    <!-- INPUTS -->
+    <div>
+      <div class="panel" style="margin-bottom:22px">
+        <h2>平均血圧 MAP</h2>
+        <div class="map-row">
+          <label for="map">平均血圧（任意・MAP/NEE 比に使用）</label>
+          <input type="number" id="map" min="0" step="1" placeholder="—">
+          <span class="unit">mmHg</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>昇圧薬・補助薬の投与量</h2>
+        <div id="drugs"></div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="result">
+      <h2>計算結果</h2>
+      <div class="metric" id="nee">
+        <div class="label">Norepinephrine Equivalence（NEE）</div>
+        <div class="val"><span class="num" id="neeVal">0.00</span><span class="u">µg/kg/min</span></div>
+      </div>
+      <div class="metric" id="ratio">
+        <div class="label">MAP / NEE 比</div>
+        <div class="val"><span class="num" id="ratioVal">—</span><span class="u" id="ratioUnit">mmHg per µg/kg/min</span></div>
+        <div class="hint" id="ratioHint">MAP を入力すると算出されます</div>
+      </div>
+      <button class="reset" id="reset">入力をクリア</button>
+    </div>
+  </div>
+
+  <details>
+    <summary>計算式と換算係数を表示</summary>
+    <div class="formula">NEE (µg/kg/min) =
+  1 × ノルアドレナリン (µg/kg/min)
++ 1 × アドレナリン (µg/kg/min)
++ 1/100 × ドパミン (µg/kg/min)
++ 0.06 × フェニレフリン (µg/kg/min)
++ 2.5 × バソプレシン (U/min)
++ 0.0025 × アンジオテンシンII (ng/kg/min)
++ 10 × テルリプレシン (µg/kg/min)
++ 0.2 × メチレンブルー (mg/kg/h)
++ 1/8 × メタラミノール (µg/kg/min)
++ 0.02 × ヒドロキソコバラミン (g)
++ 0.4 × ミドドリン (µg/kg/min)</div>
+    <div class="formula">MAP / NEE 比 = MAP (mmHg) ÷ NEE (µg/kg/min)</div>
+  </details>
+
+  <div class="disclaimer">
+    本ツールは Kotani et al. が提案した更新版 NEE 式を実装した教育・研究用の計算補助ツールです。MAP/NEE 比はショックに対する昇圧薬反応性・重症度の指標として提案された概念です。臨床判断・治療方針の決定は必ず担当医の責任で行ってください。
+  </div>
+
+  <footer>
+    出典：Kotani Y, Di Gioia A, Landoni G, Belletti A, Khanna AK. An updated "norepinephrine equivalent" score in intensive care as a marker of shock severity. <i>Critical Care</i>. 2023;27:29. doi:10.1186/s13054-023-04322-y（CC BY 4.0）<br>
+    MAP/NEE 比は Bosch et al. <i>Intensive Care Med</i>. 2020;46(1):135–7 で提案された指標に基づきます。
+  </footer>
+</div>
+
+<script>
+  // 更新版 NEE 式（Kotani et al. 2023）の薬剤と換算係数
+  const drugs = [
+    {id:'ne',   ja:'ノルアドレナリン', en:'Norepinephrine',   factor:1,      unit:'µg/kg/min', fdisp:'1'},
+    {id:'epi',  ja:'アドレナリン',     en:'Epinephrine',       factor:1,      unit:'µg/kg/min', fdisp:'1'},
+    {id:'dopa', ja:'ドパミン',         en:'Dopamine',          factor:1/100,  unit:'µg/kg/min', fdisp:'1/100'},
+    {id:'phen', ja:'フェニレフリン',   en:'Phenylephrine',     factor:0.06,   unit:'µg/kg/min', fdisp:'0.06'},
+    {id:'vaso', ja:'バソプレシン',     en:'Vasopressin',       factor:2.5,    unit:'U/min',     fdisp:'2.5'},
+    {id:'angii',ja:'アンジオテンシンII',en:'Angiotensin II',   factor:0.0025, unit:'ng/kg/min', fdisp:'0.0025'},
+    {id:'terli',ja:'テルリプレシン',   en:'Terlipressin',      factor:10,     unit:'µg/kg/min', fdisp:'10'},
+    {id:'mb',   ja:'メチレンブルー',   en:'Methylene blue',    factor:0.2,    unit:'mg/kg/h',   fdisp:'0.2'},
+    {id:'meta', ja:'メタラミノール',   en:'Metaraminol',       factor:1/8,    unit:'µg/kg/min', fdisp:'1/8'},
+    {id:'hydroxo',ja:'ヒドロキソコバラミン',en:'Hydroxocobalamin',factor:0.02, unit:'g',        fdisp:'0.02'},
+    {id:'mido', ja:'ミドドリン',       en:'Midodrine',         factor:0.4,    unit:'µg/kg/min', fdisp:'0.4'}
+  ];
+
+  const container = document.getElementById('drugs');
+  drugs.forEach(d=>{
+    const row = document.createElement('div');
+    row.className = 'drug';
+    row.innerHTML =
+      `<div class="name">${d.ja} <span style="color:var(--muted);font-weight:400;font-size:12px">${d.en}</span></div>
+       <div class="meta">換算係数 <span class="factor">×${d.fdisp}</span></div>
+       <div class="field">
+         <input type="number" id="in_${d.id}" min="0" step="any" placeholder="0" inputmode="decimal">
+         <span class="ulabel">${d.unit}</span>
+       </div>
+       <div class="contrib" id="ct_${d.id}"></div>`;
+    container.appendChild(row);
+  });
+
+  const fmt = (n, dp) => n.toLocaleString('en-US',{minimumFractionDigits:dp,maximumFractionDigits:dp});
+
+  function calc(){
+    let nee = 0;
+    drugs.forEach(d=>{
+      const el = document.getElementById('in_'+d.id);
+      const v = parseFloat(el.value);
+      const ct = document.getElementById('ct_'+d.id);
+      if(!isNaN(v) && v>0){
+        const c = v * d.factor;
+        nee += c;
+        el.classList.add('filled');
+        ct.textContent = '→ ' + fmt(c, c<0.01?4:c<1?3:2);
+      } else {
+        el.classList.remove('filled');
+        ct.textContent = '';
+      }
+    });
+
+    document.getElementById('neeVal').textContent = fmt(nee, nee<1?3:2);
+
+    const map = parseFloat(document.getElementById('map').value);
+    const ratioVal = document.getElementById('ratioVal');
+    const ratioHint = document.getElementById('ratioHint');
+    const ratioUnit = document.getElementById('ratioUnit');
+    if(!isNaN(map) && map>0 && nee>0){
+      ratioVal.textContent = fmt(map/nee, 1);
+      ratioUnit.style.display = 'inline';
+      ratioHint.textContent = `MAP ${fmt(map,0)} mmHg ÷ NEE ${fmt(nee, nee<1?3:2)}`;
+    } else if(!isNaN(map) && map>0 && nee===0){
+      ratioVal.textContent = '—';
+      ratioUnit.style.display = 'none';
+      ratioHint.textContent = '昇圧薬の投与量を入力してください（NEE > 0 が必要）';
+    } else {
+      ratioVal.textContent = '—';
+      ratioUnit.style.display = 'none';
+      ratioHint.textContent = 'MAP を入力すると算出されます';
+    }
+  }
+
+  document.querySelectorAll('input[type="number"]').forEach(i=>i.addEventListener('input', calc));
+  document.getElementById('reset').addEventListener('click', ()=>{
+    document.querySelectorAll('input[type="number"]').forEach(i=>i.value='');
+    calc();
+  });
+  calc();
+</script>
+</body>
+</html>
